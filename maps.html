@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Youtube Lite By Leo Aoda</title>
+  <style>
+    body {
+      background-color: black;
+      color: limegreen;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    a {
+      color: limegreen;
+      text-decoration: none;
+    }
+
+    .container {
+      text-align: center;
+      padding: 50px;
+    }
+
+    .instruction {
+      color: yellow;
+      margin-bottom: 20px;
+    }
+
+    .input-box {
+      border: 2px solid yellow;
+      padding: 10px;
+      background-color: black;
+      color: darkgrey;
+      outline: none;
+      transition: color 0.3s;
+    }
+
+    .input-box::placeholder {
+      color: darkgrey;
+    }
+
+    .input-box:focus {
+      color: limegreen;
+    }
+
+    .submit-button {
+      background-color: green;
+      color: yellow;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .submit-button:hover {
+      background-color: limegreen;
+      color: yellow;
+    }
+
+    .filter-section {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .filter-label {
+      color: yellow;
+      margin-left: 5px; /* Ubah margin-right menjadi 5px */
+    }
+
+    .filter-select {
+      background-color: black;
+      color: lime;
+      border: 2px solid yellow;
+      padding: 5px;
+      outline: none;
+      margin-left: 5px; /* Tambahkan margin-left menjadi 5px */
+    }
+
+    .search-results {
+      text-align: center;
+      margin-top: 20px;
+      overflow-y: auto;
+      max-height: 60vh;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column; /* Mengubah flex-direction ke column */
+      align-items: center; /* Menyusun elemen ke tengah-tengah vertikal */
+    }
+
+    .video-card {
+      background-color: black;
+      color: limegreen;
+      border: 2px solid yellow;
+      padding: 10px;
+      margin: 10px;
+      max-width: 700px;
+      text-align: center;
+      width: 100%; /* Membuat elemen video-card penuh lebar */
+      display: flex; /* Menggunakan flexbox untuk penataan isi video-card */
+      flex-direction: column; /* Menyusun isi ke dalam kolom */
+      align-items: center; /* Menyusun isi ke tengah-tengah vertikal */
+    }
+
+    .video-card img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+    }
+
+    .video-title {
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .video-iframe {
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 class="instruction">Nonton Youtube</h2>
+    <div class="filter-section">
+      <label class="filter-label">Urutkan Berdasarkan:</label>
+      <select id="sortSelect" class="filter-select">
+        <option value="relevance">Relevansi</option>
+        <option value="date">Tanggal</option>
+        <option value="rating">Rating</option>
+        <option value="title">Judul</option>
+        <option value="viewCount">Jumlah Tampilan</option>
+      </select>
+      <label class="filter-label"> Jumlah Hasil Maksimal:</label>
+      <select id="maxResultsSelect" class="filter-select">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="30">30</option>
+        <option value="40">40</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+<br>
+    <input id="searchInput" class="input-box" type="text" placeholder="Masukkan Kata Kunci">
+    <button id="searchButton" class="submit-button">Cari</button>
+    <div class="search-results" id="searchResults"></div>
+    <div id="videoIframe" class="video-iframe"></div>
+    <div id="backToResults" class="video-iframe" style="display: none;">
+      <a href="#" onclick="backToSearchResults()">Kembali ke pencarian sebelumnya</a>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+    const sortSelect = document.getElementById('sortSelect');
+    const maxResultsSelect = document.getElementById('maxResultsSelect');
+    const searchResults = document.getElementById('searchResults');
+    const videoIframe = document.getElementById('videoIframe');
+    const backToResults = document.getElementById('backToResults');
+
+    let currentVideoUrl = '';
+
+    searchButton.addEventListener('click', function() {
+      const keyword = searchInput.value;
+      const sortBy = sortSelect.value;
+      const maxResults = maxResultsSelect.value;
+      searchVideos(keyword, sortBy, maxResults);
+    });
+
+    function searchVideos(keyword, order, maxResults) {
+      const apiKey = "AIzaSyCJRLEOGyvbxxr-hc0cu4mFrNfRmjOsp5U"; // Ganti dengan API key Anda
+      const apiUrl = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&part=snippet&type=video&q=${keyword}&order=${order}&maxResults=${maxResults}`;
+
+      $.getJSON(apiUrl, function(data) {
+        const items = data.items;
+        if (items.length === 0) {
+          searchResults.innerHTML = "<p>Tidak ada hasil yang ditemukan.</p>";
+          return;
+        }
+
+        searchResults.innerHTML = '';
+        document.getElementById('videoIframe').innerHTML = ''; // Hapus isi iframe jika ada
+        backToResults.style.display = 'none'; // Sembunyikan tautan "Kembali ke pencarian sebelumnya"
+
+        items.forEach(item => {
+          const videoId = item.id.videoId;
+          const title = item.snippet.title;
+          const thumbnail = item.snippet.thumbnails.default.url;
+
+          const videoUrl = `https://www.youtube.com/embed/${videoId}`;
+
+          const resultHtml = `
+            <div class="video-card">
+              <a href="#" onclick="loadVideo('${videoUrl}')">
+                <img src="${thumbnail}" alt="${title}">
+                <p class="video-title">${title}</p>
+              </a>
+            </div>
+          `;
+
+          searchResults.innerHTML += resultHtml;
+        });
+      });
+    }
+
+    function loadVideo(videoUrl) {
+      currentVideoUrl = videoUrl;
+      searchResults.style.display = 'none';
+      backToResults.style.display = 'block'; // Tampilkan tautan "Kembali ke pencarian sebelumnya"
+      const iframe = `<iframe width="560" height="315" src="${videoUrl}" frameborder="0" allowfullscreen></iframe>`;
+      videoIframe.innerHTML = iframe;
+    }
+
+    function backToSearchResults() {
+      currentVideoUrl = '';
+      searchResults.style.display = 'flex';
+      backToResults.style.display = 'none'; // Sembunyikan tautan "Kembali ke pencarian sebelumnya"
+      videoIframe.innerHTML = ''; // Hapus isi iframe jika ada
+    }
+  </script>
+</body>
+</html>
